@@ -397,6 +397,8 @@ def run_student_code(lab_id):
     code = payload.get("code", "")
     if not isinstance(code, str) or not code.strip() or len(code) > 50000:
         return {"success": False, "output": "Enter code (maximum 50,000 characters)."}, 400
+    # Normalize browser/editor line endings consistently for Run and Submit.
+    code = code.replace("\\r\\n", "\\n").replace("\\r", "\\n")
     success, output = run_code(lab["language"], code)
     # Store run validation server-side; do not put submitted source code in the cookie session.
     with get_db() as db:
@@ -417,14 +419,25 @@ def submit_student_code(lab_id):
     if now() > datetime.fromisoformat(lab["ends_at"]) or not lab["is_active"]:
         flash("This lab session has ended.", "danger")
         return redirect(url_for("student_lab", lab_id=lab_id))
-    code = request.form.get("code", "")
     with get_db() as db:
-        check = db.execute("SELECT * FROM run_checks WHERE lab_id=? AND student_id=?",
-                           (lab_id, session["user_id"])).fetchone()
-    if not check or not check["success"] or check["code"] != code:
-        flash("Run the current version successfully before submitting.", "danger")
+        check = db.execute(
+            """
+            SELECT * FROM run_checks
+            WHERE lab_id=? AND student_id=?
+            """,
+            (lab_id, session["user_id"])
+        ).fetchone()
+
+    if not check or not check["success"]:
+        flash(
+            "Code run successful nahi hua. Pehle Run Code par click karo.",
+            "danger"
+        )
         return redirect(url_for("student_lab", lab_id=lab_id))
-    output = check["output"] or ""
+
+    # Submit only the exact code that the server successfully ran.
+    code = check["code"]
+    output = check["output"] or ""    
     student_dir = SUBMISSIONS_DIR / f"student_{session['user_id']}" / f"lab_{lab_id}"
     student_dir.mkdir(parents=True, exist_ok=True)
     filename = "submission" + LANGUAGES[lab["language"]]["extension"]

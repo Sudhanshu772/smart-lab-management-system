@@ -20,7 +20,18 @@
     <div class="student-info"><div class="avatar">{{ student.name[:1]|upper }}</div><div><h3>{{ student.name }}</h3><p class="muted">{{ student.email }}</p></div></div>
     {% if student.submission_id %}
       <div class="submission-meta"><span class="badge {{ 'correct' if student.status == 'Correct' else 'incorrect' if student.status == 'Incorrect' else 'pending' }}">{{ student.status }}</span><span class="muted">Submitted {{ student.submitted_at }}</span></div>
-      <details class="code-details"><summary>View submitted code and output</summary><h4>Code</h4><pre class="code-review">{{ student.code }}</pre><h4>Program output</h4><pre class="code-review">{{ student.output }}</pre></details>
+      <details class="code-details"><summary>View submitted code and output</summary><h4>Code</h4><pre class="code-review">{{ student.code }}</pre><h4>Program output</h4><pre class="code-review">{{ student.output }}</pre>
+      {% if lab.language == 'HTML' %}
+      <h4>HTML Preview</h4>
+
+      <iframe
+        title="Student HTML Preview"
+        sandbox="allow-scripts"
+        referrerpolicy="no-referrer"
+        srcdoc="{{ student.code|e }}"
+        style="width:100%; min-height:350px; background:white; border:1px solid #ddd; border-radius:8px;"
+      ></iframe>
+      {% endif %}</details>
       <form class="grade-form" method="post" action="{{ url_for('grade_submission', lab_id=lab.id, student_id=student.student_id) }}">
         <select name="status" aria-label="Grade {{ student.name }}"><option value="Correct" {{ 'selected' if student.status == 'Correct' else '' }}>Correct (1 mark)</option><option value="Incorrect" {{ 'selected' if student.status == 'Incorrect' else '' }}>Incorrect (0 marks)</option></select>
         <input name="feedback" maxlength="1000" placeholder="Optional feedback" value="{{ student.teacher_feedback }}">

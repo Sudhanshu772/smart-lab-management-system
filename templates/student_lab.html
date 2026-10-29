@@ -7,18 +7,13 @@
 {% endblock %}
 
 {% block content %}
-
 <div class="page-heading compact-heading">
   <div>
     <a class="back-link" href="{{ url_for('student_dashboard') }}">← Back to dashboard</a>
     <span class="eyebrow">{{ lab.language }} PRACTICAL</span>
     <h1>{{ lab.name }}</h1>
-    <p>
-      Lab Code: <strong>{{ lab.lab_code }}</strong>
-      · Ends {{ lab.ends_at|replace('T',' ') }}
-    </p>
+    <p>Lab Code: <strong>{{ lab.lab_code }}</strong> · Ends {{ lab.ends_at|replace('T',' ') }}</p>
   </div>
-
   <span class="badge {{ 'closed' if expired else 'active' }}">
     {{ 'Session ended' if expired else 'Session open' }}
   </span>
@@ -26,8 +21,7 @@
 
 {% if expired %}
 <div class="flash warning">
-  This session has ended. You can view your existing work,
-  but cannot run or submit code.
+  This session has ended. You can view your existing work, but cannot run or submit code.
 </div>
 {% endif %}
 
@@ -35,17 +29,13 @@
 <div class="notice small-notice">
   <div>
     <strong>Submission status: {{ submission.status }}</strong>
-    <p>
-      {{ submission.teacher_feedback or
-      'Your teacher has not added feedback yet.' }}
-    </p>
+    <p>{{ submission.teacher_feedback or 'Your teacher has not added feedback yet.' }}</p>
   </div>
   <strong>Marks: {{ submission.marks }}/1</strong>
 </div>
 {% endif %}
 
 <div class="editor-layout panel">
-
   <div class="editor-toolbar">
     <div>
       <span class="file-dot"></span>
@@ -57,36 +47,16 @@
 
   <div id="editor" aria-label="Code editor"></div>
 
-  <textarea
-    id="fallback-code"
-    class="fallback-code"
-    spellcheck="false"
-  >{{ submission.code if submission else default_code }}</textarea>
+  <textarea id="fallback-code" class="fallback-code" spellcheck="false">{{ submission.code if submission else default_code }}</textarea>
 
   <div class="editor-actions">
-
-    <button
-      id="run-button"
-      class="button secondary"
-      type="button"
-      {% if expired %}disabled{% endif %}
-    >
+    <button id="run-button" class="button secondary" type="button" {% if expired %}disabled{% endif %}>
       ▶ Run code
     </button>
 
-    <form
-      method="post"
-      action="{{ url_for('submit_student_code', lab_id=lab.id) }}"
-      id="submit-form"
-    >
+    <form method="post" action="{{ url_for('submit_student_code', lab_id=lab.id) }}" id="submit-form">
       <input type="hidden" name="code" id="submit-code">
-
-      <button
-        id="submit-button"
-        class="button primary"
-        type="submit"
-        disabled
-      >
+      <button id="submit-button" class="button primary" type="submit" disabled>
         Submit code
       </button>
     </form>
@@ -94,7 +64,6 @@
     <span id="run-state" class="run-state" aria-live="polite">
       Run your code successfully to unlock Submit.
     </span>
-
   </div>
 
   <section class="output-panel">
@@ -102,35 +71,22 @@
       <strong>Console output</strong>
       <span id="output-label">Ready</span>
     </div>
-
     <pre id="output">Run your program to see output here.</pre>
   </section>
 
   {% if lab.language == 'HTML' %}
-  <section
-    id="html-preview-panel"
-    class="html-preview-panel"
-    hidden
-  >
+  <section id="html-preview-panel" class="html-preview-panel" hidden>
     <div class="html-preview-heading">
       <strong>HTML Preview</strong>
       <span>Rendered webpage</span>
     </div>
-
-    <iframe
-      id="html-preview"
-      title="HTML code preview"
-      sandbox="allow-scripts"
-      referrerpolicy="no-referrer"
-      style="width:100%; min-height:300px; background:white; border:1px solid #ddd; border-radius:8px;"
-    ></iframe>
+    <iframe id="html-preview" title="HTML code preview"
+      sandbox="allow-scripts" referrerpolicy="no-referrer"
+      style="width:100%; min-height:300px; background:white; border:1px solid #ddd; border-radius:8px;"></iframe>
   </section>
   {% endif %}
-
 </div>
-
 {% endblock %}
-
 
 {% block scripts %}
 <script>
@@ -139,28 +95,22 @@
 
   const language = {{ lab.language|tojson }};
   const expired = {{ expired|tojson }};
-  const initialCode =
-    {{ (submission.code if submission else default_code)|tojson }};
-  const runUrl =
-    {{ url_for('run_student_code', lab_id=lab.id)|tojson }};
+  const initialCode = {{ (submission.code if submission else default_code)|tojson }};
+  const runUrl = {{ url_for('run_student_code', lab_id=lab.id)|tojson }};
 
   let editor = null;
-  let editorReady = false;
   let isRunning = false;
   let lastSuccessfulCode = null;
 
   const fallback = document.getElementById("fallback-code");
   const editorHost = document.getElementById("editor");
-
   const runButton = document.getElementById("run-button");
   const submitButton = document.getElementById("submit-button");
   const submitForm = document.getElementById("submit-form");
   const submitCode = document.getElementById("submit-code");
-
   const output = document.getElementById("output");
   const outputLabel = document.getElementById("output-label");
   const runState = document.getElementById("run-state");
-
   const previewPanel = document.getElementById("html-preview-panel");
   const previewFrame = document.getElementById("html-preview");
 
@@ -177,25 +127,20 @@
     lastSuccessfulCode = null;
     submitCode.value = "";
     submitButton.disabled = true;
+    setRunState("Code changed. Run it successfully before submitting.");
 
-    setRunState(
-      "Code changed. Run it successfully before submitting."
-    );
+    if (previewPanel) {
+      previewPanel.hidden = true;
+    }
   }
 
   function renderHtmlPreview(code) {
-    if (!previewPanel || !previewFrame) {
-      return;
-    }
+    if (!previewPanel || !previewFrame) return;
 
-    let html = code.trim();
-
-    // Remove Markdown fences if the student accidentally pasted them.
-    html = html
+    previewFrame.srcdoc = code.trim()
       .replace(/^```(?:html)?[ \t]*\r?\n?/i, "")
       .replace(/\r?\n?```[ \t]*$/, "");
 
-    previewFrame.srcdoc = html;
     previewPanel.hidden = false;
   }
 
@@ -214,7 +159,9 @@
     );
   }
 
-  // Initialize Monaco editor.
+  // Monaco editor initialize karo.
+  fallback.value = initialCode;
+
   if (window.require && editorHost) {
     require.config({
       paths: {
@@ -239,34 +186,26 @@
         scrollBeyondLastLine: false
       });
 
-      editorReady = true;
       editorHost.style.display = "block";
       fallback.style.display = "none";
 
-      editor.onDidChangeModelContent(function () {
-        invalidateRun();
-
-        if (previewPanel) {
-          previewPanel.hidden = true;
-        }
-      });
+      editor.onDidChangeModelContent(invalidateRun);
+    }, function () {
+      editorHost.style.display = "none";
+      fallback.style.display = "block";
+      setRunState("Editor could not load. You can still use the text area.");
     });
+  } else {
+    editorHost.style.display = "none";
+    fallback.style.display = "block";
   }
 
-  // Fallback textarea changes.
-  fallback.addEventListener("input", function () {
-    invalidateRun();
+  // Code badalne par Submit lock hoga.
+  fallback.addEventListener("input", invalidateRun);
 
-    if (previewPanel) {
-      previewPanel.hidden = true;
-    }
-  });
-
-  // Run code.
+  // Run button har request ke baad dobara enable hoga.
   runButton.addEventListener("click", async function () {
-    if (expired || isRunning) {
-      return;
-    }
+    if (expired || isRunning) return;
 
     const code = getCode();
 
@@ -286,8 +225,6 @@
     outputLabel.className = "";
     setRunState("Please wait while your code runs.");
 
-    // Display HTML immediately in the browser preview.
-    // Submission still requires server-side success.
     if (language === "HTML") {
       renderHtmlPreview(code);
     } else if (previewPanel) {
@@ -305,28 +242,29 @@
         body: JSON.stringify({ code: code })
       });
 
-      let data;
+      const contentType = response.headers.get("content-type") || "";
 
-      try {
-        data = await response.json();
-      } catch {
+      if (!contentType.includes("application/json")) {
         throw new Error(
-          "Server returned an invalid response. Check Render Logs."
+          "Server ne JSON response nahi diya. Page refresh karo aur Render Logs check karo. HTTP " +
+          response.status
         );
       }
 
+      const data = await response.json();
+
       if (!response.ok || data.success !== true) {
         showRunError(
-          data.output || ("Server error: HTTP " + response.status)
+          data.output || ("Run failed. HTTP " + response.status)
         );
         return;
       }
 
-      // Only a successful server response unlocks Submit.
       output.textContent = data.output || "Program ran successfully.";
       outputLabel.textContent = "Success";
       outputLabel.className = "output-success";
 
+      // Sirf current code ka successful run Submit unlock karega.
       lastSuccessfulCode = code;
       submitCode.value = code;
       submitButton.disabled = false;
@@ -337,38 +275,33 @@
       );
 
     } catch (error) {
-      showRunError(
-        error.message || "Could not contact the server."
-      );
+      showRunError(error.message || "Could not contact the server.");
     } finally {
       isRunning = false;
       runButton.disabled = expired;
     }
   });
 
-  // Prevent submitting code that has not successfully run.
+  // Submit se pehle verify karo ki current code successfully run hua hai.
   submitForm.addEventListener("submit", function (event) {
-    const code = getCode();
+    const currentCode = getCode();
 
     if (
       expired ||
       isRunning ||
-      submitButton.disabled ||
       lastSuccessfulCode === null ||
-      code !== lastSuccessfulCode ||
-      submitCode.value !== code
+      currentCode !== lastSuccessfulCode ||
+      submitCode.value !== currentCode
     ) {
       event.preventDefault();
+      submitButton.disabled = true;
 
-      alert(
-        "Please run the current version successfully before submitting."
-      );
+      alert("Please run the current version successfully before submitting.");
       return;
     }
 
-    submitCode.value = code;
+    submitCode.value = currentCode;
   });
-
 })();
 </script>
 {% endblock %}
