@@ -157,7 +157,7 @@ def get_lab_for_student(lab_id, student_id):
     return lab
 
 
-def run_code(language, code):
+def run_code(language, code, stdin_input=""):
     """
     LOCAL-DEMO RUNNER ONLY. subprocess is not a secure sandbox for hostile code.
     For real deployment, run every submission in a disposable, unprivileged Docker
@@ -181,7 +181,7 @@ def run_code(language, code):
             binary = workdir / "main"
             source.write_text(code, encoding="utf-8")
             compiled = subprocess.run(["gcc", str(source), "-o", str(binary)],
-                                      capture_output=True, text=True, timeout=RUN_TIMEOUT_SECONDS,
+                                      input=stdin_input,capture_output=True, text=True, timeout=RUN_TIMEOUT_SECONDS,
                                       cwd=workdir)
             if compiled.returncode != 0:
                 return False, (compiled.stderr or compiled.stdout or "Compilation failed.")[:8000]

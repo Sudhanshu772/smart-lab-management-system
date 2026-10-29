@@ -265,7 +265,7 @@
 
       if (!contentType.includes("application/json")) {
         throw new Error(
-          "Server ne JSON response nahi diya. Page refresh karo aur Render Logs check karo. HTTP " +
+          Server returned an invalid response. Please refresh the page and check the server logs. HTTP 500.
           response.status
         );
       }
