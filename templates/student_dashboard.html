@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Student dashboard · SmartLab{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><span class="eyebrow">STUDENT WORKSPACE</span><h1>Your practicals</h1><p>Join a session, write code, run it, and submit your work.</p></div>
+</div>
+<form method="post" action="{{ url_for('join_lab') }}" class="join-form panel">
+  <div><label for="lab_code">Have a Lab Code?</label><p class="muted">Enter the code shared by your teacher.</p></div>
+  <input id="lab_code" name="lab_code" required maxlength="8" placeholder="e.g. A7BC2D4F" autocomplete="off">
+  <button class="button primary" type="submit">Join lab</button>
+</form>
+{% if labs %}
+<div class="lab-grid">
+{% for lab in labs %}
+  <article class="panel lab-card">
+    <div class="card-top"><span class="language-tag">{{ lab.language }}</span><span class="badge {{ 'active' if lab.is_active and now.isoformat() < lab.ends_at else 'closed' }}">{{ 'Active' if lab.is_active and now.isoformat() < lab.ends_at else 'Ended' }}</span></div>
+    <h2>{{ lab.name }}</h2><p class="muted">Teacher: {{ lab.teacher_name }}</p>
+    <div class="lab-metrics"><div><strong>{{ lab.duration_minutes }}m</strong><span>Duration</span></div><div><strong>{{ lab.submission_status or '—' }}</strong><span>Submission</span></div><div><strong>{{ lab.marks or 0 }}</strong><span>Marks</span></div></div>
+    <a class="button secondary full" href="{{ url_for('student_lab', lab_id=lab.id) }}">Open lab →</a>
+  </article>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty-state panel"><div class="empty-icon">⌘</div><h2>No labs joined yet</h2><p>Enter the Lab Code your teacher shared above.</p></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Teacher dashboard · SmartLab{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><span class="eyebrow">TEACHER WORKSPACE</span><h1>Your lab sessions</h1><p>Create a practical, track progress, and review submissions.</p></div>
+  <a class="button primary" href="{{ url_for('create_lab') }}">＋ Create lab</a>
+</div>
+<div class="notice"><div><span class="eyebrow">YOUR PERMANENT TEACHER CODE</span><p>Share this code with students during registration.</p></div><strong class="teacher-code">{{ teacher_code }}</strong></div>
+{% if labs %}
+<div class="lab-grid">
+{% for lab in labs %}
+  <article class="panel lab-card">
+    <div class="card-top"><span class="language-tag">{{ lab.language }}</span><span class="badge {{ 'active' if lab.is_active and now.isoformat() < lab.ends_at else 'closed' }}">{{ 'Active' if lab.is_active and now.isoformat() < lab.ends_at else 'Ended' }}</span></div>
+    <h2>{{ lab.name }}</h2><p class="muted">Code: <strong>{{ lab.lab_code }}</strong></p>
+    <div class="lab-metrics"><div><strong>{{ lab.student_count }}</strong><span>Students</span></div><div><strong>{{ lab.submission_count }}</strong><span>Submitted</span></div><div><strong>{{ lab.duration_minutes }}m</strong><span>Duration</span></div></div>
+    <a class="button secondary full" href="{{ url_for('teacher_lab', lab_id=lab.id) }}">Open session →</a>
+  </article>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty-state panel"><div class="empty-icon">＋</div><h2>No lab sessions yet</h2><p>Create your first session and share its Lab Code with students.</p><a class="button primary" href="{{ url_for('create_lab') }}">Create your first lab</a></div>
+{% endif %}
+{% endblock %}

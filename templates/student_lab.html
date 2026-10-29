@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}{{ lab.name }} · SmartLab{% endblock %}
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>{% endblock %}
+{% block content %}
+<div class="page-heading compact-heading">
+  <div><a class="back-link" href="{{ url_for('student_dashboard') }}">← Back to dashboard</a><span class="eyebrow">{{ lab.language }} PRACTICAL</span><h1>{{ lab.name }}</h1><p>Lab Code: <strong>{{ lab.lab_code }}</strong> · Ends {{ lab.ends_at|replace('T',' ') }}</p></div>
+  <span class="badge {{ 'closed' if expired else 'active' }}">{{ 'Session ended' if expired else 'Session open' }}</span>
+</div>
+{% if expired %}<div class="flash warning">This session has ended. You can view your existing work, but cannot run or submit code.</div>{% endif %}
+{% if submission %}
+<div class="notice small-notice"><div><strong>Submission status: {{ submission.status }}</strong><p>{{ submission.teacher_feedback or 'Your teacher has not added feedback yet.' }}</p></div><strong>Marks: {{ submission.marks }}/1</strong></div>
+{% endif %}
+<div class="editor-layout panel">
+  <div class="editor-toolbar"><div><span class="file-dot"></span><strong id="filename">main</strong><span class="language-tag">{{ lab.language }}</span></div><span class="muted">Autosave is not enabled</span></div>
+  <div id="editor" aria-label="Code editor"></div>
+  <textarea id="fallback-code" class="fallback-code" spellcheck="false">{{ submission.code if submission else default_code }}</textarea>
+  <div class="editor-actions">
+    <button id="run-button" class="button secondary" {% if expired %}disabled{% endif %}>▶ Run code</button>
+    <form method="post" action="{{ url_for('submit_student_code', lab_id=lab.id) }}" id="submit-form">
+      <input type="hidden" name="code" id="submit-code">
+      <button id="submit-button" class="button primary" type="submit" disabled>Submit code</button>
+    </form>
+    <span id="run-state" class="run-state">Run your code successfully to unlock Submit.</span>
+  </div>
+  <section class="output-panel"><div class="output-title"><strong>Console output</strong><span id="output-label">Ready</span></div><pre id="output">Run your program to see output here.</pre></section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const language = {{ lab.language|tojson }};
+const expired = {{ expired|tojson }};
+const initialCode = {{ (submission.code if submission else default_code)|tojson }};
+const runUrl = {{ url_for('run_student_code', lab_id=lab.id)|tojson }};
+let editor = null;
+const fallback = document.getElementById('fallback-code');
+const runButton = document.getElementById('run-button');
+const submitButton = document.getElementById('submit-button');
+const submitCode = document.getElementById('submit-code');
+const output = document.getElementById('output');
+const runState = document.getElementById('run-state');
+const outputLabel = document.getElementById('output-label');
+const editorHost = document.getElementById('editor');
+function getCode() { return editor ? editor.getValue() : fallback.value; }
+function setCode(code) { if (editor) editor.setValue(code); else fallback.value = code; }
+function invalidateRun() {
+  submitButton.disabled = true;
+  runState.textContent = 'Code changed. Run it successfully before submitting.';
+  runState.className = 'run-state';
+}
+if (window.require) {
+  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' }});
+  require(['vs/editor/editor.main'], function () {
+    editorHost.style.display = 'block';
+    fallback.style.display = 'none';
+    let lang = ({'Python':'python','C':'c','C++':'cpp','Java':'java','HTML':'html'})[language] || 'plaintext';
+    editor = monaco.editor.create(editorHost, {
+      value: initialCode, language: lang, theme: 'vs-dark', automaticLayout: true,
+      minimap: {enabled:false}, fontSize: 14, scrollBeyondLastLine: false
+    });
+    editor.onDidChangeModelContent(invalidateRun);
+  });
+}
+fallback.addEventListener('input', invalidateRun);
+runButton.addEventListener('click', async () => {
+  const code = getCode();
+  runButton.disabled = true;
+  submitButton.disabled = true;
+  output.textContent = 'Running…';
+  outputLabel.textContent = 'Running';
+  try {
+    const response = await fetch(runUrl, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({code})
+    });
+    const data = await response.json();
+    output.textContent = data.output || '(No output)';
+    outputLabel.textContent = data.success ? 'Success' : 'Error';
+    outputLabel.className = data.success ? 'output-success' : 'output-error';
+    if (data.success) {
+      submitCode.value = code;
+      submitButton.disabled = false;
+      runState.textContent = 'Successful run. You can submit this version.';
+      runState.className = 'run-state success-text';
+    } else {
+      invalidateRun();
+      runState.textContent = 'Run failed. Fix the error and try again.';
+      runState.className = 'run-state error-text';
+    }
+  } catch (error) {
+    output.textContent = 'Could not contact the server.';
+    outputLabel.textContent = 'Error';
+    invalidateRun();
+  } finally {
+    runButton.disabled = expired;
+  }
+});
+document.getElementById('submit-form').addEventListener('submit', (event) => {
+  const code = getCode();
+  if (submitButton.disabled || submitCode.value !== code) {
+    event.preventDefault();
+    alert('Run the current code successfully before submitting.');
+  } else {
+    submitCode.value = code;
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Error {{ code }} · SmartLab{% endblock %}
+{% block content %}
+<div class="empty-state panel"><span class="eyebrow">ERROR {{ code }}</span><h1>Something went wrong</h1><p>{{ message }}</p><a class="button primary" href="{{ url_for('index') }}">Go home</a></div>
+{% endblock %}

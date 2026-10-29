@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ lab.name }} · Teacher · SmartLab{% endblock %}
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+<div class="page-heading compact-heading">
+  <div><a class="back-link" href="{{ url_for('teacher_dashboard') }}">← Back to dashboard</a><span class="eyebrow">LIVE SESSION MONITOR</span><h1>{{ lab.name }}</h1><p>{{ lab.language }} · Lab Code: <strong>{{ lab.lab_code }}</strong> · {{ lab.duration_minutes }} minutes</p></div>
+  <a class="button secondary" href="{{ url_for('export_marks', lab_id=lab.id) }}">↓ Export marksheet</a>
+</div>
+<div class="stats-grid">
+  <div class="panel stat-card"><span>Students joined</span><strong id="total-count">{{ total }}</strong></div>
+  <div class="panel stat-card"><span>Submitted</span><strong id="submitted-count">{{ submitted }}</strong></div>
+  <div class="panel stat-card"><span>Not submitted</span><strong id="pending-count">{{ total - submitted }}</strong></div>
+  <div class="panel stat-card"><span>Session status</span><strong class="stat-status">{{ 'Active' if lab.is_active else 'Closed' }}</strong></div>
+</div>
+<div class="panel chart-panel"><div class="section-heading"><div><h2>Submission progress</h2><p class="muted">Automatically refreshes every 5 seconds.</p></div><span class="live-dot">● Live</span></div><div class="chart-wrap"><canvas id="submissionChart" aria-label="Submission progress chart"></canvas></div></div>
+<div class="section-heading submissions-heading"><div><h2>Student submissions</h2><p class="muted">Open code, review it, and save a grade.</p></div></div>
+<div class="submission-list">
+{% for student in students %}
+  <article class="panel submission-card">
+    <div class="student-info"><div class="avatar">{{ student.name[:1]|upper }}</div><div><h3>{{ student.name }}</h3><p class="muted">{{ student.email }}</p></div></div>
+    {% if student.submission_id %}
+      <div class="submission-meta"><span class="badge {{ 'correct' if student.status == 'Correct' else 'incorrect' if student.status == 'Incorrect' else 'pending' }}">{{ student.status }}</span><span class="muted">Submitted {{ student.submitted_at }}</span></div>
+      <details class="code-details"><summary>View submitted code and output</summary><h4>Code</h4><pre class="code-review">{{ student.code }}</pre><h4>Program output</h4><pre class="code-review">{{ student.output }}</pre></details>
+      <form class="grade-form" method="post" action="{{ url_for('grade_submission', lab_id=lab.id, student_id=student.student_id) }}">
+        <select name="status" aria-label="Grade {{ student.name }}"><option value="Correct" {{ 'selected' if student.status == 'Correct' else '' }}>Correct (1 mark)</option><option value="Incorrect" {{ 'selected' if student.status == 'Incorrect' else '' }}>Incorrect (0 marks)</option></select>
+        <input name="feedback" maxlength="1000" placeholder="Optional feedback" value="{{ student.teacher_feedback }}">
+        <button class="button primary" type="submit">Save grade</button>
+      </form>
+    {% else %}
+      <div class="not-submitted"><span class="badge pending">Not submitted</span><p class="muted">Waiting for this student to submit.</p></div>
+    {% endif %}
+  </article>
+{% else %}
+  <div class="empty-state panel"><h2>No students have joined yet</h2><p>Share Lab Code <strong>{{ lab.lab_code }}</strong> with your students.</p></div>
+{% endfor %}
+</div>
+{% if lab.is_active %}
+<form method="post" action="{{ url_for('close_lab', lab_id=lab.id) }}" class="close-form" onsubmit="return confirm('Close this lab session? Students will no longer be able to run or submit code.');"><button class="button danger" type="submit">Close lab session</button></form>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+const statsUrl = {{ url_for('lab_stats', lab_id=lab.id)|tojson }};
+const chart = new Chart(document.getElementById('submissionChart'), {
+  type: 'doughnut',
+  data: { labels: ['Submitted', 'Not submitted'], datasets: [{ data: [{{ submitted }}, {{ total - submitted }}], borderWidth: 0, hoverOffset: 5 }] },
+  options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+});
+async function refreshStats() {
+  try {
+    const response = await fetch(statsUrl, {cache:'no-store'});
+    if (!response.ok) return;
+    const data = await response.json();
+    document.getElementById('total-count').textContent = data.total;
+    document.getElementById('submitted-count').textContent = data.submitted;
+    document.getElementById('pending-count').textContent = data.not_submitted;
+    chart.data.datasets[0].data = [data.submitted, data.not_submitted];
+    chart.update();
+  } catch (_) {}
+}
+setInterval(refreshStats, 5000);
+</script>
+{% endblock %}

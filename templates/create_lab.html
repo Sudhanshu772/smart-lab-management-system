@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Create lab · SmartLab{% endblock %}
+{% block content %}
+<div class="form-wrap">
+  <div class="form-heading"><span class="eyebrow">NEW PRACTICAL SESSION</span><h1>Create a lab</h1><p>Set the session details. A unique Lab Code will be generated.</p></div>
+  <form method="post" class="panel form-panel">
+    <label>Lab name<input name="name" required maxlength="120" placeholder="e.g. Introduction to loops"></label>
+    <label>Programming language<select name="language" required>{% for language in languages %}<option>{{ language }}</option>{% endfor %}</select></label>
+    <label>Duration <small>(1–360 minutes)</small><input type="number" name="duration" min="1" max="360" required value="60"></label>
+    <button class="button primary full" type="submit">Create lab session</button>
+    <a class="button text-button full" href="{{ url_for('teacher_dashboard') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

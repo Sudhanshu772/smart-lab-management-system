@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Smart Lab Management{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<nav class="navbar">
+  <a class="brand" href="{{ url_for('index') }}">⚡ SmartLab</a>
+  <div class="navlinks">
+    {% if session.get('user_id') %}
+      <span class="welcome">Hi, {{ session.get('name') }}</span>
+      <a href="{{ url_for('teacher_dashboard') if session.get('role') == 'teacher' else url_for('student_dashboard') }}">Dashboard</a>
+      <a class="nav-button" href="{{ url_for('logout') }}">Log out</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Log in</a>
+      <a class="nav-button" href="{{ url_for('register') }}">Register</a>
+    {% endif %}
+  </div>
+</nav>
+<main class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer>Smart Lab Management System · College project starter</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

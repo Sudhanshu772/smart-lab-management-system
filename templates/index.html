@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}SmartLab · Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">SMARTER PRACTICAL SESSIONS</span>
+    <h1>One lab. Every student. <span>In sync.</span></h1>
+    <p>Run programming practicals from the browser, track submissions live, and keep student performance organised in one place.</p>
+    <div class="actions">
+      <a class="button primary" href="{{ url_for('register') }}">Get started</a>
+      <a class="button secondary" href="{{ url_for('login') }}">Log in</a>
+    </div>
+    <div class="feature-row">
+      <div><strong>5</strong><span>Languages</span></div>
+      <div><strong>Live</strong><span>Progress chart</span></div>
+      <div><strong>CSV</strong><span>Marks export</span></div>
+    </div>
+  </div>
+  <div class="hero-card">
+    <div class="mock-top"><span></span><span></span><span></span><small>Lab overview</small></div>
+    <div class="mock-stat"><span>Students submitted</span><strong>24 <small>/ 30</small></strong><div class="progress"><i></i></div></div>
+    <div class="mock-code"><div class="code-line"><b>01</b> <span>def</span> greet(student):</div><div class="code-line"><b>02</b> &nbsp;&nbsp;print(<em>"Ready to learn!"</em>)</div><div class="code-line"><b>03</b> greet(<em>"student"</em>)</div></div>
+    <div class="status-pill">● Session running</div>
+  </div>
+</section>
+<section class="feature-grid">
+  <article class="feature-card"><div class="icon">⌘</div><h3>Browser coding</h3><p>Students write and run code without switching between tools.</p></article>
+  <article class="feature-card"><div class="icon">◷</div><h3>Live monitoring</h3><p>Teachers can see who has submitted and review code.</p></article>
+  <article class="feature-card"><div class="icon">✓</div><h3>Simple assessment</h3><p>Mark work and export a clean marksheet for records.</p></article>
+</section>
+{% endblock %}

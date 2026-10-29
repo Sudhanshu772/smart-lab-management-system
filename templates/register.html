@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Register · SmartLab{% endblock %}
+{% block content %}
+<div class="form-wrap">
+  <div class="form-heading"><span class="eyebrow">CREATE YOUR ACCOUNT</span><h1>Join SmartLab</h1><p>Choose your role to get started.</p></div>
+  <form method="post" class="panel form-panel">
+    <label>Full name<input name="name" required maxlength="100" autocomplete="name"></label>
+    <label>Email address<input type="email" name="email" required autocomplete="email"></label>
+    <label>Password <small>(at least 8 characters)</small><input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+    <label>Account type<select name="role" id="role" required><option value="student">Student</option><option value="teacher">Teacher</option></select></label>
+    <label id="teacher-code-wrap">Teacher Code <small>(6 digits, supplied by your teacher)</small><input name="teacher_code" id="teacher_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"></label>
+    <button class="button primary full" type="submit">Create account</button>
+    <p class="form-foot">Already registered? <a href="{{ url_for('login') }}">Log in</a></p>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const roleSelect = document.getElementById('role');
+const teacherWrap = document.getElementById('teacher-code-wrap');
+const teacherInput = document.getElementById('teacher_code');
+function updateRole() {
+  const student = roleSelect.value === 'student';
+  teacherWrap.hidden = !student;
+  teacherInput.required = student;
+}
+roleSelect.addEventListener('change', updateRole);
+updateRole();
+</script>
+{% endblock %}
