@@ -1,122 +1,374 @@
 {% extends "base.html" %}
+
 {% block title %}{{ lab.name }} · SmartLab{% endblock %}
-{% block head %}<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+{% endblock %}
+
 {% block content %}
+
 <div class="page-heading compact-heading">
-  <div><a class="back-link" href="{{ url_for('student_dashboard') }}">← Back to dashboard</a><span class="eyebrow">{{ lab.language }} PRACTICAL</span><h1>{{ lab.name }}</h1><p>Lab Code: <strong>{{ lab.lab_code }}</strong> · Ends {{ lab.ends_at|replace('T',' ') }}</p></div>
-  <span class="badge {{ 'closed' if expired else 'active' }}">{{ 'Session ended' if expired else 'Session open' }}</span>
-</div>
-{% if expired %}<div class="flash warning">This session has ended. You can view your existing work, but cannot run or submit code.</div>{% endif %}
-{% if submission %}
-<div class="notice small-notice"><div><strong>Submission status: {{ submission.status }}</strong><p>{{ submission.teacher_feedback or 'Your teacher has not added feedback yet.' }}</p></div><strong>Marks: {{ submission.marks }}/1</strong></div>
-{% endif %}
-<div class="editor-layout panel">
-  <div class="editor-toolbar"><div><span class="file-dot"></span><strong id="filename">main</strong><span class="language-tag">{{ lab.language }}</span></div><span class="muted">Autosave is not enabled</span></div>
-  <div id="editor" aria-label="Code editor"></div>
-  <textarea id="fallback-code" class="fallback-code" spellcheck="false">{{ submission.code if submission else default_code }}</textarea>
-  <div class="editor-actions">
-    <button id="run-button" class="button secondary" {% if expired %}disabled{% endif %}>▶ Run code</button>
-    <form method="post" action="{{ url_for('submit_student_code', lab_id=lab.id) }}" id="submit-form">
-      <input type="hidden" name="code" id="submit-code">
-      <button id="submit-button" class="button primary" type="submit" disabled>Submit code</button>
-    </form>
-    <span id="run-state" class="run-state">Run your code successfully to unlock Submit.</span>
+  <div>
+    <a class="back-link" href="{{ url_for('student_dashboard') }}">← Back to dashboard</a>
+    <span class="eyebrow">{{ lab.language }} PRACTICAL</span>
+    <h1>{{ lab.name }}</h1>
+    <p>
+      Lab Code: <strong>{{ lab.lab_code }}</strong>
+      · Ends {{ lab.ends_at|replace('T',' ') }}
+    </p>
   </div>
-  <section class="output-panel"><div class="output-title"><strong>Console output</strong><span id="output-label">Ready</span></div><pre id="output">Run your program to see output here.</pre></section>
+
+  <span class="badge {{ 'closed' if expired else 'active' }}">
+    {{ 'Session ended' if expired else 'Session open' }}
+  </span>
+</div>
+
+{% if expired %}
+<div class="flash warning">
+  This session has ended. You can view your existing work,
+  but cannot run or submit code.
+</div>
+{% endif %}
+
+{% if submission %}
+<div class="notice small-notice">
+  <div>
+    <strong>Submission status: {{ submission.status }}</strong>
+    <p>
+      {{ submission.teacher_feedback or
+      'Your teacher has not added feedback yet.' }}
+    </p>
+  </div>
+  <strong>Marks: {{ submission.marks }}/1</strong>
+</div>
+{% endif %}
+
+<div class="editor-layout panel">
+
+  <div class="editor-toolbar">
+    <div>
+      <span class="file-dot"></span>
+      <strong id="filename">main</strong>
+      <span class="language-tag">{{ lab.language }}</span>
+    </div>
+    <span class="muted">Autosave is not enabled</span>
+  </div>
+
+  <div id="editor" aria-label="Code editor"></div>
+
+  <textarea
+    id="fallback-code"
+    class="fallback-code"
+    spellcheck="false"
+  >{{ submission.code if submission else default_code }}</textarea>
+
+  <div class="editor-actions">
+
+    <button
+      id="run-button"
+      class="button secondary"
+      type="button"
+      {% if expired %}disabled{% endif %}
+    >
+      ▶ Run code
+    </button>
+
+    <form
+      method="post"
+      action="{{ url_for('submit_student_code', lab_id=lab.id) }}"
+      id="submit-form"
+    >
+      <input type="hidden" name="code" id="submit-code">
+
+      <button
+        id="submit-button"
+        class="button primary"
+        type="submit"
+        disabled
+      >
+        Submit code
+      </button>
+    </form>
+
+    <span id="run-state" class="run-state" aria-live="polite">
+      Run your code successfully to unlock Submit.
+    </span>
+
+  </div>
+
+  <section class="output-panel">
+    <div class="output-title">
+      <strong>Console output</strong>
+      <span id="output-label">Ready</span>
+    </div>
+
+    <pre id="output">Run your program to see output here.</pre>
+  </section>
+
   {% if lab.language == 'HTML' %}
-  <section id="html-preview-panel" class="html-preview-panel" hidden>
-    <div class="html-preview-heading"><strong>HTML Preview</strong><span>Rendered output</span></div>
-    <iframe id="html-preview" title="HTML code preview" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+  <section
+    id="html-preview-panel"
+    class="html-preview-panel"
+    hidden
+  >
+    <div class="html-preview-heading">
+      <strong>HTML Preview</strong>
+      <span>Rendered webpage</span>
+    </div>
+
+    <iframe
+      id="html-preview"
+      title="HTML code preview"
+      sandbox="allow-scripts"
+      referrerpolicy="no-referrer"
+      style="width:100%; min-height:300px; background:white; border:1px solid #ddd; border-radius:8px;"
+    ></iframe>
   </section>
   {% endif %}
+
 </div>
+
 {% endblock %}
+
+
 {% block scripts %}
 <script>
-const language = {{ lab.language|tojson }};
-const expired = {{ expired|tojson }};
-const initialCode = {{ (submission.code if submission else default_code)|tojson }};
-const runUrl = {{ url_for('run_student_code', lab_id=lab.id)|tojson }};
-let editor = null;
-const fallback = document.getElementById('fallback-code');
-const runButton = document.getElementById('run-button');
-const submitButton = document.getElementById('submit-button');
-const submitCode = document.getElementById('submit-code');
-const output = document.getElementById('output');
-const runState = document.getElementById('run-state');
-const outputLabel = document.getElementById('output-label');
-const editorHost = document.getElementById('editor');
-const previewPanel = document.getElementById('html-preview-panel');
-const previewFrame = document.getElementById('html-preview');
-function getCode() { return editor ? editor.getValue() : fallback.value; }
-function setCode(code) { if (editor) editor.setValue(code); else fallback.value = code; }
-function invalidateRun() {
-  submitButton.disabled = true;
-  runState.textContent = 'Code changed. Run it successfully before submitting.';
-  runState.className = 'run-state';
-}
-if (window.require) {
-  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' }});
-  require(['vs/editor/editor.main'], function () {
-    editorHost.style.display = 'block';
-    fallback.style.display = 'none';
-    let lang = ({'Python':'python','C':'c','C++':'cpp','Java':'java','HTML':'html'})[language] || 'plaintext';
-    editor = monaco.editor.create(editorHost, {
-      value: initialCode, language: lang, theme: 'vs-dark', automaticLayout: true,
-      minimap: {enabled:false}, fontSize: 14, scrollBeyondLastLine: false
-    });
-    editor.onDidChangeModelContent(invalidateRun);
-  });
-}
-fallback.addEventListener('input', invalidateRun);
-runButton.addEventListener('click', async () => {
-  const code = getCode();
-  runButton.disabled = true;
-  submitButton.disabled = true;
-  output.textContent = 'Running…';
-  outputLabel.textContent = 'Running';
-  if (previewPanel) previewPanel.hidden = true;
-  try {
-    const response = await fetch(runUrl, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({code})
-    });
-    const data = await response.json();
-    output.textContent = data.output || '(No output)';
-    outputLabel.textContent = data.success ? 'Success' : 'Error';
-    if (data.success && language === 'HTML' && previewFrame && previewPanel) {
-      // Accept pasted HTML, but remove optional Markdown code fences.
-      let html = code.trim().replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/, '');
-      previewFrame.srcdoc = html;
-      previewPanel.hidden = false;
+(() => {
+  "use strict";
+
+  const language = {{ lab.language|tojson }};
+  const expired = {{ expired|tojson }};
+  const initialCode =
+    {{ (submission.code if submission else default_code)|tojson }};
+  const runUrl =
+    {{ url_for('run_student_code', lab_id=lab.id)|tojson }};
+
+  let editor = null;
+  let editorReady = false;
+  let isRunning = false;
+  let lastSuccessfulCode = null;
+
+  const fallback = document.getElementById("fallback-code");
+  const editorHost = document.getElementById("editor");
+
+  const runButton = document.getElementById("run-button");
+  const submitButton = document.getElementById("submit-button");
+  const submitForm = document.getElementById("submit-form");
+  const submitCode = document.getElementById("submit-code");
+
+  const output = document.getElementById("output");
+  const outputLabel = document.getElementById("output-label");
+  const runState = document.getElementById("run-state");
+
+  const previewPanel = document.getElementById("html-preview-panel");
+  const previewFrame = document.getElementById("html-preview");
+
+  function getCode() {
+    return editor ? editor.getValue() : fallback.value;
+  }
+
+  function setRunState(message, className = "run-state") {
+    runState.textContent = message;
+    runState.className = className;
+  }
+
+  function invalidateRun() {
+    lastSuccessfulCode = null;
+    submitCode.value = "";
+    submitButton.disabled = true;
+
+    setRunState(
+      "Code changed. Run it successfully before submitting."
+    );
+  }
+
+  function renderHtmlPreview(code) {
+    if (!previewPanel || !previewFrame) {
+      return;
     }
-    outputLabel.className = data.success ? 'output-success' : 'output-error';
-    if (data.success) {
+
+    let html = code.trim();
+
+    // Remove Markdown fences if the student accidentally pasted them.
+    html = html
+      .replace(/^```(?:html)?[ \t]*\r?\n?/i, "")
+      .replace(/\r?\n?```[ \t]*$/, "");
+
+    previewFrame.srcdoc = html;
+    previewPanel.hidden = false;
+  }
+
+  function showRunError(message) {
+    output.textContent = message || "Code execution failed.";
+    outputLabel.textContent = "Error";
+    outputLabel.className = "output-error";
+
+    lastSuccessfulCode = null;
+    submitCode.value = "";
+    submitButton.disabled = true;
+
+    setRunState(
+      "Run failed. Fix the error and try again.",
+      "run-state error-text"
+    );
+  }
+
+  // Initialize Monaco editor.
+  if (window.require && editorHost) {
+    require.config({
+      paths: {
+        vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs"
+      }
+    });
+
+    require(["vs/editor/editor.main"], function () {
+      editor = monaco.editor.create(editorHost, {
+        value: initialCode,
+        language: ({
+          "Python": "python",
+          "C": "c",
+          "C++": "cpp",
+          "Java": "java",
+          "HTML": "html"
+        })[language] || "plaintext",
+        theme: "vs-dark",
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 14,
+        scrollBeyondLastLine: false
+      });
+
+      editorReady = true;
+      editorHost.style.display = "block";
+      fallback.style.display = "none";
+
+      editor.onDidChangeModelContent(function () {
+        invalidateRun();
+
+        if (previewPanel) {
+          previewPanel.hidden = true;
+        }
+      });
+    });
+  }
+
+  // Fallback textarea changes.
+  fallback.addEventListener("input", function () {
+    invalidateRun();
+
+    if (previewPanel) {
+      previewPanel.hidden = true;
+    }
+  });
+
+  // Run code.
+  runButton.addEventListener("click", async function () {
+    if (expired || isRunning) {
+      return;
+    }
+
+    const code = getCode();
+
+    if (!code.trim()) {
+      showRunError("Please enter some code before running.");
+      return;
+    }
+
+    isRunning = true;
+    runButton.disabled = true;
+    submitButton.disabled = true;
+    submitCode.value = "";
+    lastSuccessfulCode = null;
+
+    output.textContent = "Running...";
+    outputLabel.textContent = "Running";
+    outputLabel.className = "";
+    setRunState("Please wait while your code runs.");
+
+    // Display HTML immediately in the browser preview.
+    // Submission still requires server-side success.
+    if (language === "HTML") {
+      renderHtmlPreview(code);
+    } else if (previewPanel) {
+      previewPanel.hidden = true;
+    }
+
+    try {
+      const response = await fetch(runUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({ code: code })
+      });
+
+      let data;
+
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          "Server returned an invalid response. Check Render Logs."
+        );
+      }
+
+      if (!response.ok || data.success !== true) {
+        showRunError(
+          data.output || ("Server error: HTTP " + response.status)
+        );
+        return;
+      }
+
+      // Only a successful server response unlocks Submit.
+      output.textContent = data.output || "Program ran successfully.";
+      outputLabel.textContent = "Success";
+      outputLabel.className = "output-success";
+
+      lastSuccessfulCode = code;
       submitCode.value = code;
       submitButton.disabled = false;
-      runState.textContent = 'Successful run. You can submit this version.';
-      runState.className = 'run-state success-text';
-    } else {
-      invalidateRun();
-      runState.textContent = 'Run failed. Fix the error and try again.';
-      runState.className = 'run-state error-text';
+
+      setRunState(
+        "Successful run. You can submit this version.",
+        "run-state success-text"
+      );
+
+    } catch (error) {
+      showRunError(
+        error.message || "Could not contact the server."
+      );
+    } finally {
+      isRunning = false;
+      runButton.disabled = expired;
     }
-  } catch (error) {
-    output.textContent = 'Could not contact the server.';
-    outputLabel.textContent = 'Error';
-    invalidateRun();
-  } finally {
-    runButton.disabled = expired;
-  }
-});
-document.getElementById('submit-form').addEventListener('submit', (event) => {
-  const code = getCode();
-  if (submitButton.disabled || submitCode.value !== code) {
-    event.preventDefault();
-    alert('Run the current code successfully before submitting.');
-  } else {
+  });
+
+  // Prevent submitting code that has not successfully run.
+  submitForm.addEventListener("submit", function (event) {
+    const code = getCode();
+
+    if (
+      expired ||
+      isRunning ||
+      submitButton.disabled ||
+      lastSuccessfulCode === null ||
+      code !== lastSuccessfulCode ||
+      submitCode.value !== code
+    ) {
+      event.preventDefault();
+
+      alert(
+        "Please run the current version successfully before submitting."
+      );
+      return;
+    }
+
     submitCode.value = code;
-  }
-});
+  });
+
+})();
 </script>
 {% endblock %}
