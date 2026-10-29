@@ -23,6 +23,12 @@
     <span id="run-state" class="run-state">Run your code successfully to unlock Submit.</span>
   </div>
   <section class="output-panel"><div class="output-title"><strong>Console output</strong><span id="output-label">Ready</span></div><pre id="output">Run your program to see output here.</pre></section>
+  {% if lab.language == 'HTML' %}
+  <section id="html-preview-panel" class="html-preview-panel" hidden>
+    <div class="html-preview-heading"><strong>HTML Preview</strong><span>Rendered output</span></div>
+    <iframe id="html-preview" title="HTML code preview" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}
 {% block scripts %}
@@ -40,6 +46,8 @@ const output = document.getElementById('output');
 const runState = document.getElementById('run-state');
 const outputLabel = document.getElementById('output-label');
 const editorHost = document.getElementById('editor');
+const previewPanel = document.getElementById('html-preview-panel');
+const previewFrame = document.getElementById('html-preview');
 function getCode() { return editor ? editor.getValue() : fallback.value; }
 function setCode(code) { if (editor) editor.setValue(code); else fallback.value = code; }
 function invalidateRun() {
@@ -67,6 +75,7 @@ runButton.addEventListener('click', async () => {
   submitButton.disabled = true;
   output.textContent = 'Running…';
   outputLabel.textContent = 'Running';
+  if (previewPanel) previewPanel.hidden = true;
   try {
     const response = await fetch(runUrl, {
       method: 'POST', headers: {'Content-Type':'application/json'},
@@ -75,6 +84,12 @@ runButton.addEventListener('click', async () => {
     const data = await response.json();
     output.textContent = data.output || '(No output)';
     outputLabel.textContent = data.success ? 'Success' : 'Error';
+    if (data.success && language === 'HTML' && previewFrame && previewPanel) {
+      // Accept pasted HTML, but remove optional Markdown code fences.
+      let html = code.trim().replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/, '');
+      previewFrame.srcdoc = html;
+      previewPanel.hidden = false;
+    }
     outputLabel.className = data.success ? 'output-success' : 'output-error';
     if (data.success) {
       submitCode.value = code;

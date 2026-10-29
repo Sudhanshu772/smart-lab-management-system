@@ -169,8 +169,9 @@ def run_code(language, code):
     workdir = Path(tempfile.mkdtemp(prefix="labrun_"))
     try:
         if language == "HTML":
-            # HTML is rendered as source text/output in this starter; it is not executed.
-            return True, "HTML file saved successfully. Preview it from the editor."
+            # The browser renders HTML in a sandboxed iframe in student_lab.html.
+            # This server-side success record unlocks the normal submission flow.
+            return True, "HTML preview rendered in the browser."
         if language == "Python":
             source = workdir / "main.py"
             source.write_text(code, encoding="utf-8")
