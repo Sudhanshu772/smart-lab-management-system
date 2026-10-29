@@ -48,7 +48,23 @@
   <div id="editor" aria-label="Code editor"></div>
 
   <textarea id="fallback-code" class="fallback-code" spellcheck="false">{{ submission.code if submission else default_code }}</textarea>
+  <!-- Program Input -->
+<div class="program-input-panel" style="padding:16px; background:#f1f5f9; border-radius:10px; margin:15px 0;">
+  <label for="program-input" style="display:block; font-weight:600; margin-bottom:8px;">
+    Program Input (stdin)
+  </label>
 
+  <textarea
+    id="program-input"
+    placeholder="Enter input here, for example:&#10;10&#10;+&#10;20"
+    rows="4"
+    style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-family:monospace; resize:vertical;"
+  ></textarea>
+
+  <small style="display:block; margin-top:6px; color:#64748b;">
+    Enter each input on a new line, then click Run Code.
+  </small>
+</div>
   <div class="editor-actions">
     <button id="run-button" class="button secondary" type="button" {% if expired %}disabled{% endif %}>
       ▶ Run code
@@ -239,8 +255,11 @@
           "Accept": "application/json"
         },
         credentials: "same-origin",
-        body: JSON.stringify({ code: code })
-      });
+        body: JSON.stringify({
+      code: code,
+      stdin_input: document.getElementById("program-input").value
+      })
+    });
 
       const contentType = response.headers.get("content-type") || "";
 

@@ -395,11 +395,22 @@ def run_student_code(lab_id):
         return {"success": False, "output": "This lab session has ended."}, 400
     payload = request.get_json(silent=True) or {}
     code = payload.get("code", "")
+    stdin_input = payload.get("stdin_input", "")
+
+    if not isinstance(stdin_input, str) or len(stdin_input) > 10000:
+        return {
+            "success": False,
+            "output": "Input must be text and cannot exceed 10,000 characters."
+        }, 400
     if not isinstance(code, str) or not code.strip() or len(code) > 50000:
         return {"success": False, "output": "Enter code (maximum 50,000 characters)."}, 400
     # Normalize browser/editor line endings consistently for Run and Submit.
     code = code.replace("\\r\\n", "\\n").replace("\\r", "\\n")
-    success, output = run_code(lab["language"], code)
+    success, output = run_code(
+        lab["language"],
+        code,
+        stdin_input
+    )
     # Store run validation server-side; do not put submitted source code in the cookie session.
     with get_db() as db:
         db.execute("""
